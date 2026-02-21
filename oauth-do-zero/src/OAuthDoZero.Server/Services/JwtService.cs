@@ -12,7 +12,7 @@ namespace OAuthDoZero.Server.Services;
 /// </summary>
 public interface IJwtService
 {
-    string GenerateAccessToken(User user, Client client, IEnumerable<string> scopes, TimeSpan expiry);
+    string GenerateAccessToken(User? user, Client client, IEnumerable<string> scopes, TimeSpan expiry);
     string GenerateIdToken(User user, Client client, IEnumerable<string> scopes, string nonce, TimeSpan expiry);
     ClaimsPrincipal? ValidateToken(string token);
     string GenerateJti();
@@ -29,20 +29,31 @@ public class JwtService : IJwtService
         _cryptoService = cryptoService;
     }
 
-    public string GenerateAccessToken(User user, Client client, IEnumerable<string> scopes, TimeSpan expiry)
+    public string GenerateAccessToken(User? user, Client client, IEnumerable<string> scopes, TimeSpan expiry)
     {
         var jti = GenerateJti();
         var claims = new List<Claim>
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id),
             new(JwtRegisteredClaimNames.Jti, jti),
             new(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
             new("client_id", client.ClientId),
             new("scope", string.Join(" ", scopes))
         };
 
-        // Adicionar claims baseados nos scopes
-        AddScopeClaims(claims, user, scopes);
+        // Para machine-to-machine, usar client_id como subject
+        if (user == null)
+        {
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, client.ClientId));
+            claims.Add(new Claim("client_type", "machine"));
+        }
+        else
+        {
+            claims.Add(new Claim(JwtRegisteredClaimNames.Sub, user.Id));
+            claims.Add(new Claim("client_type", "user"));
+            
+            // Adicionar claims baseados nos scopes apenas se houver usuário
+            AddScopeClaims(claims, user, scopes);
+        }
 
         return GenerateToken(claims, expiry, client.ClientId);
     }

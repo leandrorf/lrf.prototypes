@@ -65,7 +65,7 @@ http://localhost:9000/oauth/authorize?client_id=testapp&redirect_uri=http://loca
 ## 📝 **EXEMPLO DE TESTE COM CURL:**
 
 ```bash
-# Obter access token (após ter o código de autorização)
+# Obter access token (após ter o código de autorização) 
 curl -X POST http://localhost:9000/oauth/token \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "grant_type=authorization_code&client_id=testapp&client_secret=secret123&code=SEU_CODIGO&redirect_uri=http://localhost:3000/callback&code_verifier=dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
@@ -73,6 +73,17 @@ curl -X POST http://localhost:9000/oauth/token \
 # Usar o access token
 curl -X GET http://localhost:9000/oauth/userinfo \
   -H "Authorization: Bearer SEU_ACCESS_TOKEN"
+```
+
+## 🤖 **AUTENTICAÇÃO MACHINE-TO-MACHINE:**
+
+✅ **O projeto agora suporta M2M!** Veja [MACHINE-TO-MACHINE.md](MACHINE-TO-MACHINE.md)
+
+```bash
+# Teste M2M (após criar cliente confidencial)
+curl -X POST http://localhost:9000/oauth/token \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "grant_type=client_credentials&client_id=service-api&client_secret=my-super-secret-key&scope=api:read api:write"
 ```
 
 ---

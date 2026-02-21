@@ -36,6 +36,7 @@ public class TokenController : ControllerBase
             {
                 "authorization_code" => await HandleAuthorizationCodeGrant(request),
                 "refresh_token" => await HandleRefreshTokenGrant(request),
+                "client_credentials" => await HandleClientCredentialsGrant(request),
                 _ => BadRequest(CreateErrorResponse("unsupported_grant_type", "Grant type not supported"))
             };
         }
@@ -139,6 +140,69 @@ public class TokenController : ControllerBase
         // TODO: Implementar validação de refresh token
         // Por enquanto retornamos erro
         return BadRequest(CreateErrorResponse("invalid_grant", "Refresh token implementation pending"));
+    }
+
+    /// <summary>
+    /// Handle Client Credentials Grant para autenticação machine-to-machine
+    /// </summary>
+    private async Task<IActionResult> HandleClientCredentialsGrant(TokenRequest request)
+    {
+        // Validar parâmetros obrigatórios
+        if (string.IsNullOrEmpty(request.ClientId))
+            return BadRequest(CreateErrorResponse("invalid_request", "client_id is required"));
+
+        if (string.IsNullOrEmpty(request.ClientSecret))
+            return BadRequest(CreateErrorResponse("invalid_request", "client_secret is required"));
+
+        // Validar cliente
+        var client = await _oauthService.ValidateClientAsync(request.ClientId, request.ClientSecret);
+        if (client == null)
+            return BadRequest(CreateErrorResponse("invalid_client", "Invalid client credentials"));
+
+        // Verificar se o cliente suporta client_credentials grant
+        var allowedGrantTypes = client.GrantTypes.Split(',', StringSplitOptions.RemoveEmptyEntries)
+            .Select(g => g.Trim()).ToList();
+        
+        if (!allowedGrantTypes.Contains("client_credentials"))
+            return BadRequest(CreateErrorResponse("unauthorized_client", "Client not authorized for client_credentials grant"));
+
+        // Verificar se é um cliente confidencial
+        if (client.ClientType != "confidential")
+            return BadRequest(CreateErrorResponse("invalid_client", "Client credentials grant requires confidential client"));
+
+        // Determinar scopes permitidos (usar scopes solicitados ou padrão do cliente)
+        var requestedScopes = !string.IsNullOrEmpty(request.Scope) 
+            ? request.Scope.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            : new string[0];
+        
+        var allowedScopes = client.AllowedScopes.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        
+        // Se nenhum scope foi solicitado, usar todos os permitidos (exceto openid para M2M)
+        var scopes = requestedScopes.Length > 0 
+            ? requestedScopes.Where(s => allowedScopes.Contains(s) && s != "openid").ToArray()
+            : allowedScopes.Where(s => s != "openid").ToArray();
+
+        if (!scopes.Any())
+            return BadRequest(CreateErrorResponse("invalid_scope", "No valid scopes requested or allowed"));
+
+        // Cliente confidental não precisa de usuário para M2M, vamos criar um "usuário" de serviço
+        // ou passar null/especial para indicar que é machine-to-machine
+        var jwtAccessToken = _jwtService.GenerateAccessToken(
+            user: null, // M2M não tem usuário específico
+            client: client, 
+            scopes: scopes, 
+            expiry: TimeSpan.FromSeconds(client.AccessTokenLifetime));
+
+        var response = new TokenResponse
+        {
+            AccessToken = jwtAccessToken,
+            TokenType = "Bearer",
+            ExpiresIn = client.AccessTokenLifetime,
+            Scope = string.Join(" ", scopes)
+            // Não incluir refresh_token nem id_token para client_credentials
+        };
+
+        return Ok(response);
     }
 
     private string GenerateRefreshTokenValue(Models.RefreshToken refreshToken)
