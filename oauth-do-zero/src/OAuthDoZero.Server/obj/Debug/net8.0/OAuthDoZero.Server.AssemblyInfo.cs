@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("OAuthDoZero.Server")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+203e92c29c84f192257cb11a8260b8ade1bfa233")]
 [assembly: System.Reflection.AssemblyProductAttribute("OAuthDoZero.Server")]
 [assembly: System.Reflection.AssemblyTitleAttribute("OAuthDoZero.Server")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
