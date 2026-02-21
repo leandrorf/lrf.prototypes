@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "iUu4HnnoGwA=",
+  "dgSpecHash": "NLSXhI/orJA=",
   "success": true,
-  "projectFilePath": "C:\\dev\\repos\\github\\leandrorf\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
+  "projectFilePath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\leand\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\leand\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",

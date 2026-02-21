@@ -2627,11 +2627,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\dev\\repos\\github\\leandrorf\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
+      "projectUniqueName": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
       "projectName": "OAuthIdentityServer",
-      "projectPath": "C:\\dev\\repos\\github\\leandrorf\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
+      "projectPath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth\\src\\OAuthIdentityServer\\OAuthIdentityServer.csproj",
       "packagesPath": "C:\\Users\\leand\\.nuget\\packages\\",
-      "outputPath": "C:\\dev\\repos\\github\\leandrorf\\oauth\\src\\OAuthIdentityServer\\obj\\",
+      "outputPath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth\\src\\OAuthIdentityServer\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
