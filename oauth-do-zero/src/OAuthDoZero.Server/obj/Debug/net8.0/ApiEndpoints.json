@@ -1,0 +1,12 @@
+[
+  {
+    "ContainingType": "OAuthDoZero.Server.Controllers.HomeController",
+    "Method": "Get",
+    "RelativePath": "Home",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]

@@ -1,0 +1,28 @@
+### Teste 1: Discovery Document (OpenID Connect)
+GET http://localhost:5185/.well-known/openid-configuration
+
+###
+
+### Teste 2: JWKS (JSON Web Key Set)
+GET http://localhost:5185/oauth/jwks
+
+###
+
+### Teste 3: Tela de Login (GET)
+GET http://localhost:5185/oauth/authorize?response_type=code&client_id=demo-client&redirect_uri=https://oidcdebugger.com/debug&scope=openid&state=test123
+
+###
+
+### Teste 4: Obter Token (POST) - Substitua os valores
+POST http://localhost:5185/oauth/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=authorization_code&code=SEU_CODE_AQUI&redirect_uri=https://oidcdebugger.com/debug&client_id=demo-client&client_secret=secret
+
+###
+
+### Teste 5: UserInfo (substitua o access_token)
+GET http://localhost:5185/oauth/userinfo
+Authorization: Bearer SEU_ACCESS_TOKEN_AQUI
+
+###

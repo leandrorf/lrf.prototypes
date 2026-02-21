@@ -1,0 +1,210 @@
+[
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OidcDiscoveryController",
+    "Method": "OpenIdConfiguration",
+    "RelativePath": ".well-known/openid-configuration",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OidcDiscoveryController",
+    "Method": "OpenIdConfiguration",
+    "RelativePath": "oauth/.well-known/openid-configuration",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OAuthController",
+    "Method": "Authorize",
+    "RelativePath": "oauth/authorize",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "response_type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "client_id",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "redirect_uri",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "scope",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "state",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code_challenge",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code_challenge_method",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "nonce",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OAuthController",
+    "Method": "AuthorizePost",
+    "RelativePath": "oauth/authorize",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "response_type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "client_id",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "redirect_uri",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "scope",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "state",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code_challenge",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code_challenge_method",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "nonce",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "username",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "password",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OidcDiscoveryController",
+    "Method": "Jwks",
+    "RelativePath": "oauth/jwks",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OAuthController",
+    "Method": "Token",
+    "RelativePath": "oauth/token",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "grant_type",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "redirect_uri",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "client_id",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "client_secret",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "refresh_token",
+        "Type": "System.String",
+        "IsRequired": false
+      },
+      {
+        "Name": "code_verifier",
+        "Type": "System.String",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OAuthController",
+    "Method": "UserInfo",
+    "RelativePath": "oauth/userinfo",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "OAuthIdentityServer.Controllers.OAuthController",
+    "Method": "UserInfo",
+    "RelativePath": "oauth/userinfo",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]
