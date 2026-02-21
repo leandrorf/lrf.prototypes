@@ -114,3 +114,10 @@ $RECYCLE.BIN/
 # User secrets (evitar commitar chaves)
 secrets.json
 appsettings.*.local.json
+
+# Arquivos temporários do Visual Studio Code
+*.vscode-workspace
+
+# Arquivos temporários do .NET
+*.tmp
+tempBuild/
