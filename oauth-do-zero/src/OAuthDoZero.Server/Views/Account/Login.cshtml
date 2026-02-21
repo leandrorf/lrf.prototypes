@@ -1,0 +1,104 @@
+@model OAuthDoZero.Server.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <h2>🔑 Entrar no Sistema</h2>
+
+    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+    {
+        <div class="alert alert-error">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(ViewBag.ClientName))
+    {
+        <div class="client-info">
+            <h3>📱 Solicitação de Acesso</h3>
+            <p><strong>Aplicação:</strong> @ViewBag.ClientName</p>
+            <p>Esta aplicação está solicitando acesso à sua conta.</p>
+        </div>
+    }
+
+    <form method="post" asp-action="Login">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="RedirectUri" />
+        <input type="hidden" asp-for="ResponseType" />
+        <input type="hidden" asp-for="Scope" />
+        <input type="hidden" asp-for="State" />
+        <input type="hidden" asp-for="CodeChallenge" />
+        <input type="hidden" asp-for="CodeChallengeMethod" />
+
+        <div class="form-group">
+            <label asp-for="Username">Nome de usuário ou email</label>
+            <input asp-for="Username" type="text" placeholder="Digite seu usuário ou email" required />
+            <span asp-validation-for="Username" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="Password">Senha</label>
+            <input asp-for="Password" type="password" placeholder="Digite sua senha" required />
+            <span asp-validation-for="Password" class="text-danger"></span>
+        </div>
+
+        <div class="checkbox-group">
+            <input asp-for="RememberMe" type="checkbox" id="rememberMe" />
+            <label for="rememberMe">Manter-me conectado</label>
+        </div>
+
+        <button type="submit" class="btn">
+            🚀 Entrar
+        </button>
+    </form>
+
+    @if (!string.IsNullOrEmpty(Model?.ReturnUrl))
+    {
+        <a href="@Url.Action("Index", "Home")" class="btn btn-secondary">
+            ❌ Cancelar
+        </a>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-focus no primeiro campo vazio
+        document.addEventListener('DOMContentLoaded', function() {
+            const usernameField = document.querySelector('#Username');
+            const passwordField = document.querySelector('#Password');
+            
+            if (usernameField && !usernameField.value) {
+                usernameField.focus();
+            } else if (passwordField && !passwordField.value) {
+                passwordField.focus();
+            }
+        });
+
+        // Validação simples do lado cliente
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const username = document.querySelector('#Username').value.trim();
+            const password = document.querySelector('#Password').value;
+
+            if (!username) {
+                e.preventDefault();
+                alert('Por favor, digite seu nome de usuário ou email.');
+                return;
+            }
+
+            if (!password) {
+                e.preventDefault();
+                alert('Por favor, digite sua senha.');
+                return;
+            }
+
+            if (password.length < 8) {
+                e.preventDefault();
+                alert('A senha deve ter pelo menos 8 caracteres.');
+                return;
+            }
+        });
+    </script>
+}

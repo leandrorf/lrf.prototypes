@@ -1,0 +1,103 @@
+@model OAuthDoZero.Server.ViewModels.ConsentViewModel
+@{
+    ViewData["Title"] = "Autorização";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <h2>🔐 Autorizar Aplicação</h2>
+
+    @if (!string.IsNullOrEmpty(TempData["ErrorMessage"] as string))
+    {
+        <div class="alert alert-error">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    <div class="client-info">
+        <h3>📱 @Model.ClientName</h3>
+        <p><strong>ID da Aplicação:</strong> @Model.ClientId</p>
+        <p><strong>Usuário:</strong> @ViewBag.Username</p>
+        <p>Esta aplicação está solicitando acesso às seguintes informações da sua conta:</p>
+    </div>
+
+    <form method="post" asp-action="Consent">
+        <input type="hidden" asp-for="ClientId" />
+        <input type="hidden" asp-for="RedirectUri" />
+        <input type="hidden" asp-for="ResponseType" />
+        <input type="hidden" asp-for="State" />
+        <input type="hidden" asp-for="CodeChallenge" />
+        <input type="hidden" asp-for="CodeChallengeMethod" />
+
+        <div class="scope-list">
+            <h3>🎯 Permissões Solicitadas</h3>
+            
+            @for (int i = 0; i < Model.Scopes.Count; i++)
+            {
+                var scope = Model.Scopes[i];
+                var isRequired = scope == "openid"; // OpenID é sempre obrigatório
+                
+                <div class="scope-item @(isRequired ? "required" : "")">
+                    <label>
+                        <input type="hidden" asp-for="Scopes[i]" value="@scope" />
+                        <input type="checkbox" 
+                               name="SelectedScopes" 
+                               value="@scope" 
+                               @(isRequired ? "checked disabled" : "checked") />
+                        <span class="scope-name">@GetScopeName(scope)</span>
+                    </label>
+                    <div class="scope-description">
+                        @GetScopeDescription(scope)
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="form-group">
+            <button type="submit" name="action" value="allow" class="btn">
+                ✅ Autorizar Acesso
+            </button>
+            
+            <button type="submit" name="action" value="deny" class="btn btn-secondary">
+                ❌ Negar Acesso
+            </button>
+        </div>
+    </form>
+
+    <div style="margin-top: 30px; padding: 15px; background: #f0f8ff; border-radius: 8px; border-left: 4px solid #0066cc;">
+        <h4 style="margin-bottom: 10px; color: #0066cc;">🛡️ Sobre suas informações</h4>
+        <p style="margin-bottom: 8px; color: #333; font-size: 14px;">• Suas credenciais de login não serão compartilhadas com a aplicação</p>
+        <p style="margin-bottom: 8px; color: #333; font-size: 14px;">• Você pode revogar essas permissões a qualquer momento</p>
+        <p style="margin-bottom: 0; color: #333; font-size: 14px;">• A aplicação só terá acesso aos dados que você autorizar</p>
+    </div>
+</div>
+
+@functions {
+    string GetScopeName(string scope)
+    {
+        return scope switch
+        {
+            "openid" => "🆔 Identidade OpenID",
+            "profile" => "👤 Informações do Perfil",
+            "email" => "📧 Endereço de Email",
+            "phone" => "📱 Número de Telefone",
+            "address" => "📍 Endereço",
+            "offline_access" => "🔄 Acesso Offline",
+            _ => $"🔧 {scope.ToUpper()}"
+        };
+    }
+
+    string GetScopeDescription(string scope)
+    {
+        return scope switch
+        {
+            "openid" => "Permite que a aplicação confirme sua identidade (obrigatório)",
+            "profile" => "Acesso ao seu nome, nome de usuário e outras informações básicas do perfil",
+            "email" => "Acesso ao seu endereço de email principal",
+            "phone" => "Acesso ao seu número de telefone",
+            "address" => "Acesso às suas informações de endereço",
+            "offline_access" => "Permite que a aplicação acesse seus dados mesmo quando você não estiver online",
+            _ => $"Acesso aos recursos relacionados a {scope}"
+        };
+    }
+}

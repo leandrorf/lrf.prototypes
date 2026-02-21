@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using OAuthDoZero.Server.DTOs;
 using OAuthDoZero.Server.Services;
 using System.Web;
+using System.Security.Claims;
 
 namespace OAuthDoZero.Server.Controllers;
 
@@ -69,36 +70,32 @@ public class AuthorizationController : ControllerBase
             if (invalidScopes.Any())
                 return BadRequest(CreateErrorResponse("invalid_scope", $"Invalid scopes: {string.Join(", ", invalidScopes)}", request.State));
 
-            // Por enquanto, vamos simular um usuário logado
-            // Em uma implementação real, aqui seria verificado se o usuário está logado
-            // e redirecionado para login se necessário
-            var user = await GetCurrentUserAsync(); // Método que vamos implementar
-            if (user == null)
+            // Verificar se usuário está autenticado
+            if (!User.Identity?.IsAuthenticated == true)
             {
                 // Redirecionar para login com parâmetros de retorno
-                var loginUrl = $"/login?return_url={HttpUtility.UrlEncode(Request.QueryString.ToString())}";
+                var loginUrl = $"/Account/Login?returnUrl={HttpUtility.UrlEncode(Request.Path + Request.QueryString)}";
                 return Redirect(loginUrl);
             }
 
-            // Gerar authorization code
-            var authCode = await _oauthService.CreateAuthorizationCodeAsync(user, client, request);
+            // Buscar usuário autenticado
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var user = await _oauthService.GetUserByIdAsync(userId!);
+            if (user == null)
+            {
+                // Forçar novo login se usuário não encontrado
+                var loginUrl = $"/Account/Login?returnUrl={HttpUtility.UrlEncode(Request.Path + Request.QueryString)}";
+                return Redirect(loginUrl);
+            }
 
-            // Construir URL de redirecionamento
-            var redirectUrl = BuildRedirectUrl(request.RedirectUri, authCode.Code, request.State);
-            
-            return Redirect(redirectUrl);
+            // Redirecionar para página de consentimento
+            var consentUrl = $"/Consent?returnUrl={HttpUtility.UrlEncode(Request.Path + Request.QueryString)}";
+            return Redirect(consentUrl);
         }
         catch (Exception ex)
         {
             return BadRequest(CreateErrorResponse("server_error", "Internal server error", request.State));
         }
-    }
-
-    private async Task<Models.User?> GetCurrentUserAsync()
-    {
-        // TODO: Implementar autenticação real
-        // Por enquanto, retorna um usuário fake para teste
-        return await _oauthService.GetUserByUsernameAsync("demo");
     }
 
     private OAuthErrorResponse CreateErrorResponse(string error, string description, string? state = null)
