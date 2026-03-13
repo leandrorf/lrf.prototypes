@@ -137,3 +137,11 @@ C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\obj\Debug\n
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\obj\Debug\net8.0\IdentityServer.pdb
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\obj\Debug\net8.0\IdentityServer.genruntimeconfig.cache
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\obj\Debug\net8.0\ref\IdentityServer.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.Abstractions.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.JsonWebTokens.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.Logging.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\Microsoft.IdentityModel.Tokens.dll
+C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0\IdentityServer\bin\Debug\net8.0\System.IdentityModel.Tokens.Jwt.dll
