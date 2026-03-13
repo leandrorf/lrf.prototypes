@@ -2,10 +2,12 @@ using IdentityServer.Configuration;
 using IdentityServer.Data;
 using IdentityServer.Models;
 using IdentityServer.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System.Net;
+using System.Security.Claims;
 using System.Text;
 
 namespace IdentityServer.Controllers;
@@ -131,12 +133,14 @@ public class ConnectController : ControllerBase
 
             var (user, _) = consumed.Value;
             var accessToken = _jwtService.CreateAccessToken(user);
+            var idToken = _jwtService.CreateIdToken(user, client_id);
             var newRefreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
             return Ok(new
             {
                 access_token = accessToken,
                 refresh_token = newRefreshToken.Token,
+                id_token = idToken,
                 token_type = "Bearer",
                 expires_in = _jwtSettings.AccessTokenExpirationMinutes * 60
             });
@@ -153,18 +157,43 @@ public class ConnectController : ControllerBase
 
             await _refreshTokenService.RevokeAsync(refreshTokenEntity, cancellationToken);
             var accessToken = _jwtService.CreateAccessToken(refreshTokenEntity.User);
+            var idToken = _jwtService.CreateIdToken(refreshTokenEntity.User, client_id);
             var newRefreshToken = await _refreshTokenService.CreateAsync(refreshTokenEntity.User, cancellationToken);
 
             return Ok(new
             {
                 access_token = accessToken,
                 refresh_token = newRefreshToken.Token,
+                id_token = idToken,
                 token_type = "Bearer",
                 expires_in = _jwtSettings.AccessTokenExpirationMinutes * 60
             });
         }
 
         return BadRequest(new { error = "unsupported_grant_type", error_description = "Suportado: authorization_code, refresh_token." });
+    }
+
+    /// <summary>OpenID Connect: retorna claims do usuário autenticado (Bearer access_token).</summary>
+    [HttpGet("userinfo")]
+    [Authorize]
+    [Produces("application/json")]
+    public IActionResult Userinfo()
+    {
+        var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        var name = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("unique_name")?.Value;
+        var email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value;
+        var preferredUsername = User.FindFirst("preferred_username")?.Value ?? name;
+
+        if (string.IsNullOrEmpty(sub))
+            return Unauthorized();
+
+        return Ok(new
+        {
+            sub,
+            name,
+            email = email ?? (string?)null,
+            preferred_username = preferredUsername
+        });
     }
 
     /// <summary>Registra um cliente OAuth (útil em desenvolvimento). Em produção use fluxo administrativo.</summary>
