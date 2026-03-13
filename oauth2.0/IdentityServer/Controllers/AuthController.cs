@@ -16,13 +16,20 @@ public class AuthController : ControllerBase
     private readonly AuthDbContext _db;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
+    private readonly IRefreshTokenService _refreshTokenService;
     private readonly JwtSettings _jwtSettings;
 
-    public AuthController(AuthDbContext db, IPasswordHasher passwordHasher, IJwtService jwtService, IOptions<JwtSettings> jwtSettings)
+    public AuthController(
+        AuthDbContext db,
+        IPasswordHasher passwordHasher,
+        IJwtService jwtService,
+        IRefreshTokenService refreshTokenService,
+        IOptions<JwtSettings> jwtSettings)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
+        _refreshTokenService = refreshTokenService;
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -81,12 +88,46 @@ public class AuthController : ControllerBase
         }
 
         var accessToken = _jwtService.CreateAccessToken(user);
+        var refreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
         return Ok(new
         {
             access_token = accessToken,
+            refresh_token = refreshToken.Token,
             token_type = "Bearer",
-            expires_in = _jwtSettings.AccessTokenExpirationMinutes * 60
+            expires_in = _jwtSettings.AccessTokenExpirationMinutes * 60,
+            refresh_token_expires_in = _jwtSettings.RefreshTokenExpirationDays * 24 * 60 * 60
+        });
+    }
+
+    [HttpPost("refresh")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequest request, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            return BadRequest(new { error = "REFRESH_TOKEN_REQUIRED" });
+        }
+
+        var refreshTokenEntity = await _refreshTokenService.FindValidAsync(request.RefreshToken.Trim(), cancellationToken);
+
+        if (refreshTokenEntity is null)
+        {
+            return BadRequest(new { error = "INVALID_OR_EXPIRED_REFRESH_TOKEN" });
+        }
+
+        await _refreshTokenService.RevokeAsync(refreshTokenEntity, cancellationToken);
+        var newAccessToken = _jwtService.CreateAccessToken(refreshTokenEntity.User);
+        var newRefreshToken = await _refreshTokenService.CreateAsync(refreshTokenEntity.User, cancellationToken);
+
+        return Ok(new
+        {
+            access_token = newAccessToken,
+            refresh_token = newRefreshToken.Token,
+            token_type = "Bearer",
+            expires_in = _jwtSettings.AccessTokenExpirationMinutes * 60,
+            refresh_token_expires_in = _jwtSettings.RefreshTokenExpirationDays * 24 * 60 * 60
         });
     }
 

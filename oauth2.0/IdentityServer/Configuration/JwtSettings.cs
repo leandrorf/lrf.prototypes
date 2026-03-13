@@ -15,4 +15,7 @@ public class JwtSettings
 
     /// <summary>Tempo de vida do access token em minutos.</summary>
     public int AccessTokenExpirationMinutes { get; set; } = 60;
+
+    /// <summary>Tempo de vida do refresh token em dias.</summary>
+    public int RefreshTokenExpirationDays { get; set; } = 7;
 }
