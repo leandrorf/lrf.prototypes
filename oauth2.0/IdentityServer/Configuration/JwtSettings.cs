@@ -18,4 +18,7 @@ public class JwtSettings
 
     /// <summary>Tempo de vida do refresh token em dias.</summary>
     public int RefreshTokenExpirationDays { get; set; } = 7;
+
+    /// <summary>Tempo de vida do authorization code em minutos (OAuth 2.0).</summary>
+    public int AuthorizationCodeExpirationMinutes { get; set; } = 10;
 }

@@ -47,6 +47,7 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
+builder.Services.AddScoped<IOAuthService, OAuthService>();
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
                   ?? throw new InvalidOperationException("Jwt configuration section is missing.");
