@@ -26,6 +26,7 @@ public class WellKnownController : ControllerBase
             issuer,
             authorization_endpoint = $"{issuer}/connect/authorize",
             token_endpoint = $"{issuer}/connect/token",
+            revocation_endpoint = $"{issuer}/connect/revoke",
             userinfo_endpoint = $"{issuer}/connect/userinfo",
             response_types_supported = new[] { "code" },
             code_challenge_methods_supported = new[] { "S256", "plain" },

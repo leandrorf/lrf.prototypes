@@ -22,7 +22,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Informe o token JWT (obtido no endpoint /api/Auth/login). Ex: Bearer {seu_token}"
+        Description = "Token JWT obtido via OAuth (ex.: /connect/authorize + /connect/token). Ex: Bearer {seu_token}"
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {

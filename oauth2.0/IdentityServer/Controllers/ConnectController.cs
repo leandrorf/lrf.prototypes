@@ -12,7 +12,7 @@ using System.Text;
 
 namespace IdentityServer.Controllers;
 
-/// <summary>Endpoints OAuth 2.0: authorize (login + code), token e registro de cliente.</summary>
+/// <summary>Endpoints OAuth 2.0 / OpenID Connect: authorize, token, revoke, userinfo.</summary>
 [Route("connect")]
 [ApiController]
 public class ConnectController : ControllerBase
@@ -208,6 +208,38 @@ public class ConnectController : ControllerBase
         return BadRequest(new { error = "unsupported_grant_type", error_description = "Suportado: authorization_code, refresh_token." });
     }
 
+    /// <summary>Revoga um refresh_token (RFC 7009). Sempre retorna 200; não revela se o token era válido.</summary>
+    [HttpPost("revoke")]
+    [Consumes("application/x-www-form-urlencoded")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> Revoke(
+        [FromForm] string? token,
+        [FromForm] string? token_type_hint,
+        [FromForm] string? client_id,
+        [FromForm] string? client_secret,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(token))
+            return Ok();
+
+        if (string.IsNullOrWhiteSpace(client_id) || string.IsNullOrWhiteSpace(client_secret))
+            return Ok();
+
+        var client = await _oauthService.ValidateClientAsync(client_id, client_secret, cancellationToken);
+        if (client is null)
+            return Ok();
+
+        var hint = token_type_hint?.Trim();
+        if (string.IsNullOrEmpty(hint) || string.Equals(hint, "refresh_token", StringComparison.OrdinalIgnoreCase))
+        {
+            var refreshTokenEntity = await _refreshTokenService.FindValidAsync(token.Trim(), cancellationToken);
+            if (refreshTokenEntity is not null)
+                await _refreshTokenService.RevokeAsync(refreshTokenEntity, cancellationToken);
+        }
+
+        return Ok();
+    }
+
     /// <summary>OpenID Connect: retorna claims do usuário conforme scope do access_token (sub sempre; name/preferred_username com profile; email com email).</summary>
     [HttpGet("userinfo")]
     [Authorize]
@@ -243,40 +275,6 @@ public class ConnectController : ControllerBase
         return set;
     }
 
-    /// <summary>Registra um cliente OAuth (útil em desenvolvimento). Em produção use fluxo administrativo.</summary>
-    [HttpPost("register-client")]
-    [ProducesResponseType(StatusCodes.Status201Created)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RegisterClient([FromBody] RegisterClientRequest request, CancellationToken cancellationToken)
-    {
-        var clientId = request.ClientId.Trim();
-        var existing = await _db.Clients.AsNoTracking().AnyAsync(c => c.ClientId == clientId, cancellationToken);
-        if (existing)
-            return BadRequest(new { error = "CLIENT_ID_ALREADY_EXISTS" });
-
-        var (hash, salt) = _passwordHasher.HashPassword(request.ClientSecret);
-
-        var client = new Client
-        {
-            ClientId = clientId,
-            ClientSecretHash = hash,
-            ClientSecretSalt = salt,
-            Name = string.IsNullOrWhiteSpace(request.Name) ? null : request.Name.Trim(),
-            RedirectUris = request.RedirectUris.Trim(),
-            AllowedGrantTypes = "authorization_code,refresh_token"
-        };
-
-        _db.Clients.Add(client);
-        await _db.SaveChangesAsync(cancellationToken);
-
-        return Created($"connect/authorize?client_id={Uri.EscapeDataString(client.ClientId)}", new
-        {
-            client_id = client.ClientId,
-            name = client.Name,
-            redirect_uris = client.RedirectUris
-        });
-    }
-
     private static string BuildRedirectUrl(string redirectUri, string code, string? state)
     {
         var sep = redirectUri.Contains('?') ? "&" : "?";
@@ -284,28 +282,6 @@ public class ConnectController : ControllerBase
         if (!string.IsNullOrEmpty(state))
             url += $"&state={Uri.EscapeDataString(state)}";
         return url;
-    }
-
-    /// <summary>Página de callback para testes: exibe code e state após o login (use como redirect_uri ao testar).</summary>
-    [HttpGet("callback-demo")]
-    [Produces("text/html")]
-    public IActionResult CallbackDemo([FromQuery] string? code, [FromQuery] string? state)
-    {
-        var codeEnc = WebUtility.HtmlEncode(code ?? "");
-        var stateEnc = WebUtility.HtmlEncode(state ?? "");
-        var baseUrl = $"{Request.Scheme}://{Request.Host}{Request.PathBase}".TrimEnd('/');
-        var html = $@"<!DOCTYPE html>
-<html>
-<head><meta charset=""utf-8""/><title>OAuth Callback (demo)</title></head>
-<body>
-  <h2>Autorização concluída</h2>
-  <p>Use o <strong>code</strong> abaixo no POST /connect/token (grant_type=authorization_code).</p>
-  <p><strong>Code:</strong> <code style=""background:#eee;padding:4px;word-break:break-all;"">{codeEnc}</code></p>
-  <p><strong>State:</strong> <code style=""background:#eee;padding:4px;"">{stateEnc}</code></p>
-  <p><small>redirect_uri para usar no token: <code>{WebUtility.HtmlEncode(baseUrl)}/connect/callback-demo</code></small></p>
-</body>
-</html>";
-        return Content(html, "text/html", Encoding.UTF8);
     }
 
     private static string GetLoginPageHtml(string clientId, string redirectUri, string state, string scope, HttpRequest request, string? codeChallenge = null, string? codeChallengeMethod = null, string? error = null)

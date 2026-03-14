@@ -17,13 +17,14 @@ Console.WriteLine("code_challenge (use na URL do /connect/authorize):");
 Console.WriteLine(challenge);
 Console.WriteLine();
 Console.WriteLine("--- URL de autorização (exemplo) ---");
+Console.WriteLine("Substitua {baseUrl}, {clientId} e {redirectUri} pelos valores do seu cliente (cadastrado no banco).");
 var baseUrl = "http://localhost:5235";
 var clientId = "meu-app";
-var redirectUri = $"{baseUrl}/connect/callback-demo";
+var redirectUri = "https://app.example.com/callback";
 var authUrl = $"{baseUrl}/connect/authorize?client_id={Uri.EscapeDataString(clientId)}&redirect_uri={Uri.EscapeDataString(redirectUri)}&response_type=code&state=xyz&code_challenge={Uri.EscapeDataString(challenge)}&code_challenge_method=S256";
 Console.WriteLine(authUrl);
 Console.WriteLine();
-Console.WriteLine("No POST /connect/token adicione o parâmetro: code_verifier = (valor acima)");
+Console.WriteLine("No POST /connect/token envie: code_verifier = (valor acima), redirect_uri = o mesmo usado acima.");
 
 static string GenerateCodeVerifier()
 {
