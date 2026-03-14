@@ -66,6 +66,10 @@ public class ConnectController : ControllerBase
                 return BadRequest("code_challenge_method deve ser S256 ou plain.");
         }
 
+        var normalizedScope = NormalizeScope(scope);
+        if (normalizedScope is null)
+            return BadRequest("scope deve conter apenas: openid, profile, email (ex.: openid profile email).");
+
         var client = await _oauthService.GetClientByIdAsync(client_id, cancellationToken);
         if (client is null)
             return BadRequest("Cliente não encontrado.");
@@ -73,8 +77,23 @@ public class ConnectController : ControllerBase
         if (!_oauthService.IsRedirectUriAllowed(client, redirect_uri))
             return BadRequest("redirect_uri não permitido para este cliente.");
 
-        var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method);
+        var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", normalizedScope, Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method);
         return Content(html, "text/html", Encoding.UTF8);
+    }
+
+    private static readonly HashSet<string> AllowedScopes = new(StringComparer.OrdinalIgnoreCase) { "openid", "profile", "email" };
+
+    private static string? NormalizeScope(string? scope)
+    {
+        if (string.IsNullOrWhiteSpace(scope)) return "openid";
+        var parts = scope!.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var list = new List<string>();
+        foreach (var p in parts)
+        {
+            if (!AllowedScopes.Contains(p)) return null;
+            if (!list.Contains(p, StringComparer.OrdinalIgnoreCase)) list.Add(p);
+        }
+        return list.Count == 0 ? "openid" : string.Join(" ", list);
     }
 
     /// <summary>POST: processa login e redireciona para redirect_uri com ?code=...&state=...</summary>
@@ -97,15 +116,19 @@ public class ConnectController : ControllerBase
         if (client is null || !_oauthService.IsRedirectUriAllowed(client, redirect_uri))
             return BadRequest("Cliente ou redirect_uri inválido.");
 
+        var normalizedScope = NormalizeScope(scope);
+        if (normalizedScope is null)
+            return BadRequest("scope inválido. Use apenas: openid, profile, email.");
+
         var normalizedUserName = username.Trim().ToLowerInvariant();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName.ToLower() == normalizedUserName, cancellationToken);
         if (user is null || !_passwordHasher.VerifyPassword(password, user.PasswordHash, user.PasswordSalt))
         {
-            var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method, error: "Usuário ou senha inválidos.");
+            var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", normalizedScope, Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method, error: "Usuário ou senha inválidos.");
             return Content(html, "text/html", Encoding.UTF8);
         }
 
-        var authCode = await _oauthService.CreateAuthorizationCodeAsync(user, client, redirect_uri, scope, state, code_challenge, code_challenge_method, cancellationToken);
+        var authCode = await _oauthService.CreateAuthorizationCodeAsync(user, client, redirect_uri, normalizedScope, state, code_challenge, code_challenge_method, cancellationToken);
         var redirectUrl = BuildRedirectUrl(redirect_uri, authCode.Code, state);
         return Redirect(redirectUrl);
     }
@@ -143,9 +166,9 @@ public class ConnectController : ControllerBase
                     error_description = "Código inválido, expirado ou já utilizado. Se usou PKCE no /authorize (code_challenge), envie code_verifier no token; redirect_uri deve ser idêntico."
                 });
 
-            var (user, _) = consumed.Value;
-            var accessToken = _jwtService.CreateAccessToken(user);
-            var idToken = _jwtService.CreateIdToken(user, client_id);
+            var (user, _, scope) = consumed.Value;
+            var accessToken = _jwtService.CreateAccessToken(user, scope);
+            var idToken = _jwtService.CreateIdToken(user, client_id, scope);
             var newRefreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
             return Ok(new
@@ -168,8 +191,8 @@ public class ConnectController : ControllerBase
                 return BadRequest(new { error = "invalid_grant", error_description = "Refresh token inválido ou expirado." });
 
             await _refreshTokenService.RevokeAsync(refreshTokenEntity, cancellationToken);
-            var accessToken = _jwtService.CreateAccessToken(refreshTokenEntity.User);
-            var idToken = _jwtService.CreateIdToken(refreshTokenEntity.User, client_id);
+            var accessToken = _jwtService.CreateAccessToken(refreshTokenEntity.User, scope: null);
+            var idToken = _jwtService.CreateIdToken(refreshTokenEntity.User, client_id, scope: null);
             var newRefreshToken = await _refreshTokenService.CreateAsync(refreshTokenEntity.User, cancellationToken);
 
             return Ok(new
@@ -185,27 +208,39 @@ public class ConnectController : ControllerBase
         return BadRequest(new { error = "unsupported_grant_type", error_description = "Suportado: authorization_code, refresh_token." });
     }
 
-    /// <summary>OpenID Connect: retorna claims do usuário autenticado (Bearer access_token).</summary>
+    /// <summary>OpenID Connect: retorna claims do usuário conforme scope do access_token (sub sempre; name/preferred_username com profile; email com email).</summary>
     [HttpGet("userinfo")]
     [Authorize]
     [Produces("application/json")]
     public IActionResult Userinfo()
     {
         var sub = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-        var name = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("unique_name")?.Value;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value;
-        var preferredUsername = User.FindFirst("preferred_username")?.Value ?? name;
-
         if (string.IsNullOrEmpty(sub))
             return Unauthorized();
 
-        return Ok(new
+        var scopeClaim = User.FindFirst("scope")?.Value;
+        var scopeSet = ParseScopeClaim(scopeClaim);
+
+        var result = new Dictionary<string, object?> { ["sub"] = sub };
+        if (scopeSet.Contains("profile") || scopeSet.Count == 0)
         {
-            sub,
-            name,
-            email = email ?? (string?)null,
-            preferred_username = preferredUsername
-        });
+            var name = User.FindFirst(ClaimTypes.Name)?.Value ?? User.FindFirst("unique_name")?.Value;
+            result["name"] = name;
+            result["preferred_username"] = name ?? User.FindFirst("preferred_username")?.Value;
+        }
+        if (scopeSet.Contains("email") || scopeSet.Count == 0)
+            result["email"] = User.FindFirst(ClaimTypes.Email)?.Value ?? User.FindFirst("email")?.Value;
+
+        return Ok(result);
+    }
+
+    private static HashSet<string> ParseScopeClaim(string? scope)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(scope)) return set;
+        foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            set.Add(s);
+        return set;
     }
 
     /// <summary>Registra um cliente OAuth (útil em desenvolvimento). Em produção use fluxo administrativo.</summary>

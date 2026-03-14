@@ -32,7 +32,7 @@ public class WellKnownController : ControllerBase
             grant_types_supported = new[] { "authorization_code", "refresh_token" },
             subject_types_supported = new[] { "public" },
             id_token_signing_alg_values_supported = new[] { "HS256" },
-            scopes_supported = new[] { "openid" }
+            scopes_supported = new[] { "openid", "profile", "email" }
         };
         return Ok(doc);
     }

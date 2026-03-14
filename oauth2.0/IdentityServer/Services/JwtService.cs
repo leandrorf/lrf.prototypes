@@ -17,23 +17,22 @@ public sealed class JwtService : IJwtService
         _settings = options.Value;
     }
 
-    public string CreateAccessToken(User user)
+    public string CreateAccessToken(User user, string? scope = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var scopeSet = ParseScopes(scope);
 
-        var claims = new List<Claim>
+        var claims = new List<Claim> { new(JwtRegisteredClaimNames.Sub, user.Id.ToString()), new(ClaimTypes.NameIdentifier, user.Id.ToString()) };
+        if (scopeSet.Contains("profile") || scopeSet.Count == 0)
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName),
-            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new(ClaimTypes.Name, user.UserName)
-        };
-
-        if (!string.IsNullOrEmpty(user.Email))
-        {
-            claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
+            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName));
+            claims.Add(new(ClaimTypes.Name, user.UserName));
         }
+        if ((scopeSet.Contains("email") || scopeSet.Count == 0) && !string.IsNullOrEmpty(user.Email))
+            claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
+        if (!string.IsNullOrWhiteSpace(scope))
+            claims.Add(new Claim("scope", scope.Trim()));
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
@@ -46,19 +45,19 @@ public sealed class JwtService : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string CreateIdToken(User user, string audienceClientId)
+    public string CreateIdToken(User user, string audienceClientId, string? scope = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var scopeSet = ParseScopes(scope);
 
-        var claims = new List<Claim>
+        var claims = new List<Claim> { new(JwtRegisteredClaimNames.Sub, user.Id.ToString()) };
+        if (scopeSet.Contains("profile") || scopeSet.Count == 0)
         {
-            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
-            new(JwtRegisteredClaimNames.UniqueName, user.UserName),
-            new("preferred_username", user.UserName)
-        };
-
-        if (!string.IsNullOrEmpty(user.Email))
+            claims.Add(new(JwtRegisteredClaimNames.UniqueName, user.UserName));
+            claims.Add(new("preferred_username", user.UserName));
+        }
+        if ((scopeSet.Contains("email") || scopeSet.Count == 0) && !string.IsNullOrEmpty(user.Email))
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
 
         var token = new JwtSecurityToken(
@@ -70,5 +69,14 @@ public sealed class JwtService : IJwtService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static HashSet<string> ParseScopes(string? scope)
+    {
+        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(scope)) return set;
+        foreach (var s in scope.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            set.Add(s);
+        return set;
     }
 }

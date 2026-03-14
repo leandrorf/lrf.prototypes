@@ -84,7 +84,7 @@ public sealed class OAuthService : IOAuthService
         return null;
     }
 
-    public async Task<(User User, Client Client)?> ConsumeAuthorizationCodeAsync(string code, string redirectUri, string clientId, string? codeVerifier, CancellationToken cancellationToken = default)
+    public async Task<(User User, Client Client, string? Scope)?> ConsumeAuthorizationCodeAsync(string code, string redirectUri, string clientId, string? codeVerifier, CancellationToken cancellationToken = default)
     {
         var codeTrimmed = code?.Trim();
         if (string.IsNullOrEmpty(codeTrimmed))
@@ -127,7 +127,7 @@ public sealed class OAuthService : IOAuthService
         entity.UsedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
-        return (entity.User, entity.Client);
+        return (entity.User, entity.Client, entity.Scope);
     }
 
     /// <summary>RFC 7636: Base64URL(SHA256(code_verifier)).</summary>
