@@ -40,7 +40,7 @@ public class ConnectController : ControllerBase
         _jwtSettings = jwtSettings.Value;
     }
 
-    /// <summary>GET: exibe formulário de login OAuth. Parâmetros: client_id, redirect_uri, response_type=code, state, scope (opcional).</summary>
+    /// <summary>GET: exibe formulário de login OAuth. Parâmetros: client_id, redirect_uri, response_type=code, state, scope (opcional), code_challenge e code_challenge_method (PKCE).</summary>
     [HttpGet("authorize")]
     [Produces("text/html")]
     public async Task<IActionResult> Authorize(
@@ -49,6 +49,8 @@ public class ConnectController : ControllerBase
         [FromQuery] string? response_type,
         [FromQuery] string? state,
         [FromQuery] string? scope,
+        [FromQuery] string? code_challenge,
+        [FromQuery] string? code_challenge_method,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(client_id) || string.IsNullOrWhiteSpace(redirect_uri))
@@ -57,6 +59,13 @@ public class ConnectController : ControllerBase
         if (response_type != "code")
             return BadRequest("response_type deve ser 'code' (Authorization Code).");
 
+        if (!string.IsNullOrWhiteSpace(code_challenge))
+        {
+            var method = code_challenge_method?.Trim();
+            if (!string.IsNullOrEmpty(method) && method != "S256" && !string.Equals(method, "plain", StringComparison.OrdinalIgnoreCase))
+                return BadRequest("code_challenge_method deve ser S256 ou plain.");
+        }
+
         var client = await _oauthService.GetClientByIdAsync(client_id, cancellationToken);
         if (client is null)
             return BadRequest("Cliente não encontrado.");
@@ -64,7 +73,7 @@ public class ConnectController : ControllerBase
         if (!_oauthService.IsRedirectUriAllowed(client, redirect_uri))
             return BadRequest("redirect_uri não permitido para este cliente.");
 
-        var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request);
+        var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method);
         return Content(html, "text/html", Encoding.UTF8);
     }
 
@@ -77,6 +86,8 @@ public class ConnectController : ControllerBase
         [FromForm] string? redirect_uri,
         [FromForm] string? state,
         [FromForm] string? scope,
+        [FromForm] string? code_challenge,
+        [FromForm] string? code_challenge_method,
         CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password) || string.IsNullOrWhiteSpace(client_id) || string.IsNullOrWhiteSpace(redirect_uri))
@@ -90,11 +101,11 @@ public class ConnectController : ControllerBase
         var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName.ToLower() == normalizedUserName, cancellationToken);
         if (user is null || !_passwordHasher.VerifyPassword(password, user.PasswordHash, user.PasswordSalt))
         {
-            var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request, error: "Usuário ou senha inválidos.");
+            var html = GetLoginPageHtml(client_id, redirect_uri, state ?? "", scope ?? "", Request, codeChallenge: code_challenge, codeChallengeMethod: code_challenge_method, error: "Usuário ou senha inválidos.");
             return Content(html, "text/html", Encoding.UTF8);
         }
 
-        var authCode = await _oauthService.CreateAuthorizationCodeAsync(user, client, redirect_uri, scope, state, cancellationToken);
+        var authCode = await _oauthService.CreateAuthorizationCodeAsync(user, client, redirect_uri, scope, state, code_challenge, code_challenge_method, cancellationToken);
         var redirectUrl = BuildRedirectUrl(redirect_uri, authCode.Code, state);
         return Redirect(redirectUrl);
     }
@@ -106,6 +117,7 @@ public class ConnectController : ControllerBase
         [FromForm] string? grant_type,
         [FromForm] string? code,
         [FromForm] string? redirect_uri,
+        [FromForm] string? code_verifier,
         [FromForm] string? refresh_token,
         [FromForm] string? client_id,
         [FromForm] string? client_secret,
@@ -123,12 +135,12 @@ public class ConnectController : ControllerBase
             if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(redirect_uri))
                 return BadRequest(new { error = "invalid_request", error_description = "code e redirect_uri são obrigatórios para grant_type=authorization_code." });
 
-            var consumed = await _oauthService.ConsumeAuthorizationCodeAsync(code, redirect_uri, client_id, cancellationToken);
+            var consumed = await _oauthService.ConsumeAuthorizationCodeAsync(code, redirect_uri, client_id, code_verifier, cancellationToken);
             if (consumed is null)
                 return BadRequest(new
                 {
                     error = "invalid_grant",
-                    error_description = "Código inválido, expirado ou já utilizado. Verifique: (1) code usado apenas uma vez, (2) redirect_uri idêntico ao do /authorize, (3) code com menos de 10 min."
+                    error_description = "Código inválido, expirado ou já utilizado. Se usou PKCE no /authorize (code_challenge), envie code_verifier no token; redirect_uri deve ser idêntico."
                 });
 
             var (user, _) = consumed.Value;
@@ -261,11 +273,17 @@ public class ConnectController : ControllerBase
         return Content(html, "text/html", Encoding.UTF8);
     }
 
-    private static string GetLoginPageHtml(string clientId, string redirectUri, string state, string scope, HttpRequest request, string? error = null)
+    private static string GetLoginPageHtml(string clientId, string redirectUri, string state, string scope, HttpRequest request, string? codeChallenge = null, string? codeChallengeMethod = null, string? error = null)
     {
         var basePath = (request.PathBase.Value ?? "").TrimEnd('/');
         var actionUrl = $"{request.Scheme}://{request.Host}{basePath}/connect/authorize";
         var errorBlock = string.IsNullOrEmpty(error) ? "" : $@"<p style=""color: red;"">{WebUtility.HtmlEncode(error)}</p>";
+        var hiddenPkce = "";
+        if (!string.IsNullOrWhiteSpace(codeChallenge))
+        {
+            hiddenPkce = $@"<input type=""hidden"" name=""code_challenge"" value=""{WebUtility.HtmlEncode(codeChallenge.Trim())}"" />
+    <input type=""hidden"" name=""code_challenge_method"" value=""{WebUtility.HtmlEncode((codeChallengeMethod ?? "S256").Trim())}"" />";
+        }
         return $@"<!DOCTYPE html>
 <html>
 <head><meta charset=""utf-8""/><title>Login</title></head>
@@ -277,6 +295,7 @@ public class ConnectController : ControllerBase
     <input type=""hidden"" name=""redirect_uri"" value=""{WebUtility.HtmlEncode(redirectUri)}"" />
     <input type=""hidden"" name=""state"" value=""{WebUtility.HtmlEncode(state)}"" />
     <input type=""hidden"" name=""scope"" value=""{WebUtility.HtmlEncode(scope)}"" />
+    {hiddenPkce}
     <div><label>Usuário:</label><input type=""text"" name=""username"" required /></div>
     <div><label>Senha:</label><input type=""password"" name=""password"" required /></div>
     <button type=""submit"">Entrar</button>

@@ -25,6 +25,14 @@ public class AuthorizationCode
     [MaxLength(500)]
     public string? State { get; set; }
 
+    /// <summary>PKCE: code_challenge enviado no /authorize.</summary>
+    [MaxLength(512)]
+    public string? CodeChallenge { get; set; }
+
+    /// <summary>PKCE: S256 ou plain.</summary>
+    [MaxLength(10)]
+    public string? CodeChallengeMethod { get; set; }
+
     public DateTime ExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UsedAtUtc { get; set; }

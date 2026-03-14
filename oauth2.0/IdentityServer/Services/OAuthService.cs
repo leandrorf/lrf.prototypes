@@ -1,9 +1,10 @@
+using System.Security.Cryptography;
+using System.Text;
 using IdentityServer.Configuration;
 using IdentityServer.Data;
 using IdentityServer.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
-using System.Security.Cryptography;
 
 namespace IdentityServer.Services;
 
@@ -47,10 +48,14 @@ public sealed class OAuthService : IOAuthService
         return allowed.Any(u => string.Equals(u, redirectUri.Trim(), StringComparison.OrdinalIgnoreCase));
     }
 
-    public async Task<AuthorizationCode> CreateAuthorizationCodeAsync(User user, Client client, string redirectUri, string? scope, string? state, CancellationToken cancellationToken = default)
+    public async Task<AuthorizationCode> CreateAuthorizationCodeAsync(User user, Client client, string redirectUri, string? scope, string? state, string? codeChallenge, string? codeChallengeMethod, CancellationToken cancellationToken = default)
     {
         var code = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
         var expiresAt = DateTime.UtcNow.AddMinutes(_settings.AuthorizationCodeExpirationMinutes);
+
+        var method = NormalizeChallengeMethod(codeChallengeMethod);
+        if (!string.IsNullOrEmpty(codeChallenge) && method is null)
+            method = "S256"; // RFC: default quando só code_challenge é enviado
 
         var authCode = new AuthorizationCode
         {
@@ -60,6 +65,8 @@ public sealed class OAuthService : IOAuthService
             RedirectUri = redirectUri,
             Scope = scope,
             State = state,
+            CodeChallenge = string.IsNullOrWhiteSpace(codeChallenge) ? null : codeChallenge.Trim(),
+            CodeChallengeMethod = method,
             ExpiresAtUtc = expiresAt
         };
 
@@ -68,7 +75,16 @@ public sealed class OAuthService : IOAuthService
         return authCode;
     }
 
-    public async Task<(User User, Client Client)?> ConsumeAuthorizationCodeAsync(string code, string redirectUri, string clientId, CancellationToken cancellationToken = default)
+    private static string? NormalizeChallengeMethod(string? value)
+    {
+        var v = value?.Trim();
+        if (string.IsNullOrEmpty(v)) return null;
+        if (string.Equals(v, "S256", StringComparison.OrdinalIgnoreCase)) return "S256";
+        if (string.Equals(v, "plain", StringComparison.OrdinalIgnoreCase)) return "plain";
+        return null;
+    }
+
+    public async Task<(User User, Client Client)?> ConsumeAuthorizationCodeAsync(string code, string redirectUri, string clientId, string? codeVerifier, CancellationToken cancellationToken = default)
     {
         var codeTrimmed = code?.Trim();
         if (string.IsNullOrEmpty(codeTrimmed))
@@ -83,21 +99,43 @@ public sealed class OAuthService : IOAuthService
             return null;
 
         if (entity.IsUsed)
-            return null; // código já utilizado (uso único)
+            return null;
 
         if (entity.IsExpired)
-            return null; // código expirado (validade ~10 min)
+            return null;
 
         if (!string.Equals(entity.Client.ClientId, clientId.Trim(), StringComparison.Ordinal))
             return null;
 
         if (!RedirectUriMatches(entity.RedirectUri, redirectUri))
-            return null; // redirect_uri deve ser idêntico ao usado no /authorize
+            return null;
+
+        if (!string.IsNullOrEmpty(entity.CodeChallenge))
+        {
+            if (string.IsNullOrWhiteSpace(codeVerifier))
+                return null;
+            var verifier = codeVerifier.Trim();
+            if (verifier.Length < 43 || verifier.Length > 128)
+                return null;
+            var expectedChallenge = entity.CodeChallengeMethod == "plain"
+                ? verifier
+                : ComputeS256Challenge(verifier);
+            if (!string.Equals(entity.CodeChallenge, expectedChallenge, StringComparison.Ordinal))
+                return null;
+        }
 
         entity.UsedAtUtc = DateTime.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
         return (entity.User, entity.Client);
+    }
+
+    /// <summary>RFC 7636: Base64URL(SHA256(code_verifier)).</summary>
+    private static string ComputeS256Challenge(string codeVerifier)
+    {
+        var bytes = Encoding.ASCII.GetBytes(codeVerifier);
+        var hash = SHA256.HashData(bytes);
+        return Convert.ToBase64String(hash).TrimEnd('=').Replace('+', '-').Replace('/', '_');
     }
 
     /// <summary>Compara redirect_uri normalizado (trim, barra final ignorada).</summary>

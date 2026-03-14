@@ -28,6 +28,7 @@ public class WellKnownController : ControllerBase
             token_endpoint = $"{issuer}/connect/token",
             userinfo_endpoint = $"{issuer}/connect/userinfo",
             response_types_supported = new[] { "code" },
+            code_challenge_methods_supported = new[] { "S256", "plain" },
             grant_types_supported = new[] { "authorization_code", "refresh_token" },
             subject_types_supported = new[] { "public" },
             id_token_signing_alg_values_supported = new[] { "HS256" },
