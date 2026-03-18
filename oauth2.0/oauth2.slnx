@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/identityserver.api/">
+    <Project Path="identityserver.api/IdentityServer.csproj" />
+  </Folder>
+  <Folder Name="/identityserver.web/">
+    <Project Path="identityserver.web/IdentityServer.Web.csproj" />
+  </Folder>
+  <Project Path="PkceGenerator/PkceGenerator.csproj" />
+</Solution>

@@ -1,0 +1,28 @@
+@model identityserver.web.Models.TvLoginScanViewModel
+@{
+    ViewData["Title"] = "Login para TV";
+    Layout = "_Layout";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <h2>Login para TV</h2>
+        <p class="text-muted">Informe suas credenciais para concluir o login na TV.</p>
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <div class="alert alert-danger">@Model.Error</div>
+        }
+        <form method="post" asp-action="TvLogin">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="session_id" value="@Model.SessionId" />
+            <div class="mb-3">
+                <label for="userName" class="form-label">Usuário</label>
+                <input type="text" class="form-control" id="userName" name="userName" value="@Model.UserName" required autofocus />
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Entrar e autorizar TV</button>
+        </form>
+    </div>
+</div>

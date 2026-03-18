@@ -2,40 +2,36 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build-api",
             "command": "dotnet",
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/IdentityServer/IdentityServer.csproj",
+                "${workspaceFolder}/identityserver.api/IdentityServer.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
-            "label": "publish",
+            "label": "build-web",
             "command": "dotnet",
             "type": "process",
             "args": [
-                "publish",
-                "${workspaceFolder}/IdentityServer/IdentityServer.csproj",
+                "build",
+                "${workspaceFolder}/identityserver.web/IdentityServer.Web.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary;ForceNoAlign"
             ],
-            "problemMatcher": "$msCompile"
+            "problemMatcher": "$msCompile",
+            "group": "build"
         },
         {
-            "label": "watch",
-            "command": "dotnet",
-            "type": "process",
-            "args": [
-                "watch",
-                "run",
-                "--project",
-                "${workspaceFolder}/IdentityServer/IdentityServer.csproj"
-            ],
-            "problemMatcher": "$msCompile"
+            "label": "build",
+            "dependsOrder": "sequence",
+            "dependsOn": ["build-api", "build-web"],
+            "group": "build"
         }
     ]
 }

@@ -1,8 +1,11 @@
 using identityserver.web.Configuration;
+using identityserver.web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<IdentityServerOptions>(builder.Configuration.GetSection(IdentityServerOptions.SectionName));
+builder.Services.Configure<AppOptions>(builder.Configuration.GetSection(AppOptions.SectionName));
+builder.Services.AddSingleton<ITvSessionStore, TvSessionStore>();
 
 builder.Services.AddHttpClient("IdentityServer", (sp, client) =>
 {

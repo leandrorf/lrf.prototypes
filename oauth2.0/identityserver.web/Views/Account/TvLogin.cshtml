@@ -1,0 +1,68 @@
+@model identityserver.web.Models.TvLoginViewModel
+@{
+    ViewData["Title"] = "Login na TV";
+    Layout = "_Layout";
+}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <h2>Login na TV</h2>
+        <p class="text-muted">Escaneie o QR code com seu celular para fazer login</p>
+        <div id="qrcode" class="d-inline-block bg-white p-3 rounded shadow"></div>
+        <p class="mt-3 small text-muted">Ou acesse no celular:<br /><code class="small" id="scanUrl">@Model.ScanUrl</code></p>
+        <p id="status" class="mt-3 text-muted">Aguardando leitura do QR code...</p>
+        <div id="tokens" class="text-start mt-3 d-none">
+            <h5 class="text-success">Login realizado</h5>
+            <div class="mb-2">
+                <label class="form-label fw-bold small">access_token</label>
+                <textarea id="accessToken" class="form-control form-control-sm font-monospace small" rows="2" readonly></textarea>
+            </div>
+            <div class="mb-2">
+                <label class="form-label fw-bold small">refresh_token</label>
+                <textarea id="refreshToken" class="form-control form-control-sm font-monospace small" rows="2" readonly></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            const scanUrl = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ScanUrl));
+            const sessionId = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SessionId));
+            const statusUrl = '@Url.Action("TvLoginStatus", "Account")?session_id=' + encodeURIComponent(sessionId);
+
+            try {
+                new QRCode(document.getElementById('qrcode'), { text: scanUrl, width: 280, height: 280 });
+            } catch (e) {
+                document.getElementById('qrcode').innerHTML = '<p class="text-danger">Use o link abaixo no celular.</p>';
+            }
+
+            const statusEl = document.getElementById('status');
+            const tokensEl = document.getElementById('tokens');
+            const accessTokenEl = document.getElementById('accessToken');
+            const refreshTokenEl = document.getElementById('refreshToken');
+
+            function poll() {
+                fetch(statusUrl)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.status === 'completed') {
+                            statusEl.textContent = '';
+                            statusEl.classList.add('d-none');
+                            accessTokenEl.value = data.access_token || '';
+                            refreshTokenEl.value = data.refresh_token || '';
+                            tokensEl.classList.remove('d-none');
+                            return;
+                        }
+                        if (data.status === 'expired') {
+                            statusEl.textContent = 'Sessão expirada. Atualize a página na TV.';
+                            return;
+                        }
+                        setTimeout(poll, 2000);
+                    })
+                    .catch(() => setTimeout(poll, 2000));
+            }
+            setTimeout(poll, 2000);
+        })();
+    </script>
+}
