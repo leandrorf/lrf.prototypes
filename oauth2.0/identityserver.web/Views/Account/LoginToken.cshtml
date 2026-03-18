@@ -1,0 +1,50 @@
+@model identityserver.web.Models.LoginTokenViewModel
+@{
+    ViewData["Title"] = "Login (obter tokens)";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6">
+        <h2>Login – obter tokens</h2>
+        <p class="text-muted">Informe usuário e senha para receber o access_token, refresh_token e id_token.</p>
+
+        @if (!Model.Success)
+        {
+            @if (!string.IsNullOrEmpty(Model.Error))
+            {
+                <div class="alert alert-danger">@Model.Error</div>
+            }
+            <form method="post" asp-action="LoginToken">
+                @Html.AntiForgeryToken()
+                <div class="mb-3">
+                    <label for="userName" class="form-label">Usuário</label>
+                    <input type="text" class="form-control" id="userName" name="userName" value="@Model.UserName" required autofocus />
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Senha</label>
+                    <input type="password" class="form-control" id="password" name="password" required />
+                </div>
+                <button type="submit" class="btn btn-primary">Entrar e obter tokens</button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-success">Login realizado. Tokens abaixo:</div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">access_token</label>
+                <textarea class="form-control font-monospace small" rows="3" readonly>@Model.AccessToken</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">refresh_token</label>
+                <textarea class="form-control font-monospace small" rows="2" readonly>@Model.RefreshToken</textarea>
+            </div>
+            <div class="mb-3">
+                <label class="form-label fw-bold">id_token</label>
+                <textarea class="form-control font-monospace small" rows="3" readonly>@Model.IdToken</textarea>
+            </div>
+            <p class="text-muted small">token_type: @Model.TokenType · expires_in: @Model.ExpiresIn s</p>
+            <a asp-action="LoginToken" class="btn btn-outline-secondary">Fazer novo login</a>
+        }
+    </div>
+</div>

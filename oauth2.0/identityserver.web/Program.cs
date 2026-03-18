@@ -4,6 +4,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.Configure<IdentityServerOptions>(builder.Configuration.GetSection(IdentityServerOptions.SectionName));
 
+builder.Services.AddHttpClient("IdentityServer", (sp, client) =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityServerOptions>>().Value;
+    client.BaseAddress = new Uri(options.Authority.TrimEnd('/') + "/");
+});
+
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 

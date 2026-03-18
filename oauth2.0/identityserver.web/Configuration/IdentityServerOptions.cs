@@ -9,4 +9,6 @@ public class IdentityServerOptions
     public string Authority { get; set; } = "http://localhost:5235";
 
     public string AuthorizeEndpoint => Authority.TrimEnd('/') + "/connect/authorize";
+
+    public string LoginEndpoint => Authority.TrimEnd('/') + "/api/Auth/login";
 }
