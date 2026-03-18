@@ -1,0 +1,35 @@
+@model identityserver.web.Models.SignInViewModel
+@{
+    ViewData["Title"] = "Login";
+    Layout = "_Layout";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-4">
+        <h2>Login</h2>
+        @if (!string.IsNullOrEmpty(Model.Error))
+        {
+            <p class="text-danger">@Model.Error</p>
+        }
+        <form method="post" action="@Model.PostUrl">
+            <input type="hidden" name="client_id" value="@Model.ClientId" />
+            <input type="hidden" name="redirect_uri" value="@Model.RedirectUri" />
+            <input type="hidden" name="state" value="@Model.State" />
+            <input type="hidden" name="scope" value="@Model.Scope" />
+            @if (!string.IsNullOrWhiteSpace(Model.CodeChallenge))
+            {
+                <input type="hidden" name="code_challenge" value="@Model.CodeChallenge" />
+                <input type="hidden" name="code_challenge_method" value="@(Model.CodeChallengeMethod ?? "S256")" />
+            }
+            <div class="mb-3">
+                <label for="username" class="form-label">Usuário</label>
+                <input type="text" class="form-control" id="username" name="username" required autofocus />
+            </div>
+            <div class="mb-3">
+                <label for="password" class="form-label">Senha</label>
+                <input type="password" class="form-control" id="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+    </div>
+</div>
