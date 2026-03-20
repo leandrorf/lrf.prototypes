@@ -1,0 +1,6 @@
+@lrfdev.auth.api_HostAddress = http://localhost:5036
+
+GET {{lrfdev.auth.api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

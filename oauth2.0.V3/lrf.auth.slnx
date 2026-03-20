@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="lrfdev.auth.web/lrfdev.auth.web.csproj" />
+  <Project Path="lrfdev.auth.api/lrfdev.auth.api.csproj" />
+</Solution>

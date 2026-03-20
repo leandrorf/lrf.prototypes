@@ -1,0 +1,54 @@
+@model lrfdev.auth.web.Models.LoginViewModel
+
+@{
+    ViewData["Title"] = "Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-4">Login - lrf auth</h2>
+
+        <form asp-controller="Account" asp-action="Login" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Entrar</button>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.AccessToken))
+        {
+            <div class="alert alert-success mt-4">
+                <h5>Autenticação realizada</h5>
+                <p><strong>Token:</strong></p>
+                <textarea class="form-control" rows="8" readonly>@Model.AccessToken</textarea>
+                <p class="mt-3 mb-1"><strong>Permissões:</strong></p>
+                <ul>
+                    @foreach (var permission in Model.Permissions)
+                    {
+                        <li>@permission</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
