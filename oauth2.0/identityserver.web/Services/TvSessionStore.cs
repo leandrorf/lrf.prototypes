@@ -3,7 +3,8 @@ namespace identityserver.web.Services;
 /// <summary>Armazena sessões de login via QR (TV) em memória. Chave = session_id.</summary>
 public interface ITvSessionStore
 {
-    string CreateSession();
+    /// <param name="deviceExternalId">Opcional: ID do dispositivo (ex. tv-001) enviado ao login da API para validação por grupo.</param>
+    string CreateSession(string? deviceExternalId = null);
     void SetTokens(string sessionId, TvSessionTokens tokens);
     TvSessionResult? Get(string sessionId);
 }
@@ -28,20 +29,22 @@ public sealed class TvSessionResult
     public string? IdToken { get; set; }
     public string? TokenType { get; set; }
     public int? ExpiresIn { get; set; }
+    public string? DeviceExternalId { get; set; }
 }
 
 public sealed class TvSessionStore : ITvSessionStore
 {
     private static readonly TimeSpan SessionExpiry = TimeSpan.FromMinutes(10);
-    private readonly Dictionary<string, (TvSessionTokens? tokens, DateTime createdAt)> _sessions = new();
+    private readonly Dictionary<string, (TvSessionTokens? tokens, DateTime createdAt, string? deviceExternalId)> _sessions = new();
     private readonly object _lock = new();
 
-    public string CreateSession()
+    public string CreateSession(string? deviceExternalId = null)
     {
         var sessionId = Guid.NewGuid().ToString("N")[..12];
+        var device = string.IsNullOrWhiteSpace(deviceExternalId) ? null : deviceExternalId.Trim();
         lock (_lock)
         {
-            _sessions[sessionId] = (null, DateTime.UtcNow);
+            _sessions[sessionId] = (null, DateTime.UtcNow, device);
             CleanupLocked();
         }
         return sessionId;
@@ -52,7 +55,7 @@ public sealed class TvSessionStore : ITvSessionStore
         lock (_lock)
         {
             if (_sessions.TryGetValue(sessionId, out var entry))
-                _sessions[sessionId] = (tokens, entry.createdAt);
+                _sessions[sessionId] = (tokens, entry.createdAt, entry.deviceExternalId);
         }
     }
 
@@ -64,7 +67,7 @@ public sealed class TvSessionStore : ITvSessionStore
             if (!_sessions.TryGetValue(sessionId, out var entry))
                 return null;
             if (entry.tokens is null)
-                return new TvSessionResult { Status = TvSessionResult.Pending };
+                return new TvSessionResult { Status = TvSessionResult.Pending, DeviceExternalId = entry.deviceExternalId };
             return new TvSessionResult
             {
                 Status = TvSessionResult.Completed,
@@ -72,7 +75,8 @@ public sealed class TvSessionStore : ITvSessionStore
                 RefreshToken = entry.tokens.RefreshToken,
                 IdToken = entry.tokens.IdToken,
                 TokenType = entry.tokens.TokenType,
-                ExpiresIn = entry.tokens.ExpiresIn
+                ExpiresIn = entry.tokens.ExpiresIn,
+                DeviceExternalId = entry.deviceExternalId
             };
         }
     }

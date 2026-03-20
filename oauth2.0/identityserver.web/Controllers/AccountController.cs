@@ -73,7 +73,7 @@ public class AccountController : Controller
 
     /// <summary>TV: exibe QR code. Celular: ao escanear, exibe formulário de login. Após login, a TV recebe os tokens via polling.</summary>
     [HttpGet]
-    public IActionResult TvLogin([FromQuery] string? session_id)
+    public IActionResult TvLogin([FromQuery] string? session_id, [FromQuery] string? device_id)
     {
         if (!string.IsNullOrWhiteSpace(session_id))
         {
@@ -82,12 +82,18 @@ public class AccountController : Controller
                 return View("TvLoginExpired");
             return View("TvLoginScan", new TvLoginScanViewModel { SessionId = session_id });
         }
-        var newSessionId = _tvSessionStore.CreateSession();
+        var newSessionId = _tvSessionStore.CreateSession(device_id);
         var baseUrl = !string.IsNullOrWhiteSpace(_appOptions.PublicBaseUrl)
             ? _appOptions.PublicBaseUrl.TrimEnd('/')
             : $"{Request.Scheme}://{Request.Host}{Request.PathBase}".TrimEnd('/');
         var scanUrl = $"{baseUrl}/Account/TvLogin?session_id={newSessionId}";
-        return View("TvLogin", new TvLoginViewModel { SessionId = newSessionId, ScanUrl = scanUrl });
+        var deviceTrim = string.IsNullOrWhiteSpace(device_id) ? null : device_id.Trim();
+        return View("TvLogin", new TvLoginViewModel
+        {
+            SessionId = newSessionId,
+            ScanUrl = scanUrl,
+            DeviceExternalId = deviceTrim
+        });
     }
 
     [HttpPost]
@@ -102,11 +108,25 @@ public class AccountController : Controller
             model.Error = "Usuário e senha são obrigatórios.";
             return View("TvLoginScan", model);
         }
+        var sessionSnapshot = _tvSessionStore.Get(session_id);
+        var deviceId = sessionSnapshot?.DeviceExternalId;
+
         var client = _httpClientFactory.CreateClient("IdentityServer");
-        var body = new { userName = userName.Trim(), password };
-        var response = await client.PostAsJsonAsync("api/Auth/login", body, cancellationToken);
+        var loginBody = new Dictionary<string, object?>
+        {
+            ["userName"] = userName.Trim(),
+            ["password"] = password
+        };
+        if (!string.IsNullOrWhiteSpace(deviceId))
+            loginBody["deviceId"] = deviceId;
+        var response = await client.PostAsJsonAsync("api/Auth/login", loginBody, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+            {
+                model.Error = "Este usuário não pode usar este dispositivo (grupo TV).";
+                return View("TvLoginScan", model);
+            }
             model.Error = response.StatusCode == System.Net.HttpStatusCode.BadRequest ? "Usuário ou senha inválidos." : "Erro ao autenticar.";
             return View("TvLoginScan", model);
         }

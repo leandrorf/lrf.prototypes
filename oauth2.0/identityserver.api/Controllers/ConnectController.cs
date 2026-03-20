@@ -22,6 +22,7 @@ public class ConnectController : ControllerBase
     private readonly IJwtService _jwtService;
     private readonly IRefreshTokenService _refreshTokenService;
     private readonly IOAuthService _oauthService;
+    private readonly IPermissionService _permissionService;
     private readonly JwtSettings _jwtSettings;
     private readonly LoginUiOptions _loginUi;
 
@@ -31,6 +32,7 @@ public class ConnectController : ControllerBase
         IJwtService jwtService,
         IRefreshTokenService refreshTokenService,
         IOAuthService oauthService,
+        IPermissionService permissionService,
         IOptions<JwtSettings> jwtSettings,
         IOptions<LoginUiOptions> loginUi)
     {
@@ -39,8 +41,16 @@ public class ConnectController : ControllerBase
         _jwtService = jwtService;
         _refreshTokenService = refreshTokenService;
         _oauthService = oauthService;
+        _permissionService = permissionService;
         _jwtSettings = jwtSettings.Value;
         _loginUi = loginUi.Value;
+    }
+
+    private async Task<(IReadOnlyList<string> groups, IReadOnlyList<string> permissions)> LoadRbacClaimsAsync(User user, CancellationToken cancellationToken)
+    {
+        var groups = await _permissionService.GetGroupNamesForUserAsync(user.Id, cancellationToken);
+        var permissions = await _permissionService.GetFeatureCodesForUserAsync(user.Id, cancellationToken);
+        return (groups, permissions);
     }
 
     /// <summary>GET: exibe formulário de login OAuth. Parâmetros: client_id, redirect_uri, response_type=code (opcional), state, scope (opcional), code_challenge e code_challenge_method (PKCE).</summary>
@@ -228,8 +238,9 @@ public class ConnectController : ControllerBase
                 });
 
             var (user, _, scope) = consumed.Value;
-            var accessToken = _jwtService.CreateAccessToken(user, scope);
-            var idToken = _jwtService.CreateIdToken(user, client_id, scope);
+            var (groups, permissions) = await LoadRbacClaimsAsync(user, cancellationToken);
+            var accessToken = _jwtService.CreateAccessToken(user, scope, groups, permissions);
+            var idToken = _jwtService.CreateIdToken(user, client_id, scope, groups, permissions);
             var newRefreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
             return Ok(new
@@ -252,9 +263,11 @@ public class ConnectController : ControllerBase
                 return BadRequest(new { error = "invalid_grant", error_description = "Refresh token inválido ou expirado." });
 
             await _refreshTokenService.RevokeAsync(refreshTokenEntity, cancellationToken);
-            var accessToken = _jwtService.CreateAccessToken(refreshTokenEntity.User, scope: null);
-            var idToken = _jwtService.CreateIdToken(refreshTokenEntity.User, client_id, scope: null);
-            var newRefreshToken = await _refreshTokenService.CreateAsync(refreshTokenEntity.User, cancellationToken);
+            var user = refreshTokenEntity.User;
+            var (groups, permissions) = await LoadRbacClaimsAsync(user, cancellationToken);
+            var accessToken = _jwtService.CreateAccessToken(user, scope: null, groups, permissions);
+            var idToken = _jwtService.CreateIdToken(user, client_id, scope: null, groups, permissions);
+            var newRefreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
             return Ok(new
             {

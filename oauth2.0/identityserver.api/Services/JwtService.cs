@@ -17,7 +17,7 @@ public sealed class JwtService : IJwtService
         _settings = options.Value;
     }
 
-    public string CreateAccessToken(User user, string? scope = null)
+    public string CreateAccessToken(User user, string? scope = null, IReadOnlyList<string>? groupNames = null, IReadOnlyList<string>? permissionCodes = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -33,6 +33,7 @@ public sealed class JwtService : IJwtService
             claims.Add(new(JwtRegisteredClaimNames.Email, user.Email));
         if (!string.IsNullOrWhiteSpace(scope))
             claims.Add(new Claim("scope", scope.Trim()));
+        AddGroupAndPermissionClaims(claims, groupNames, permissionCodes);
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
@@ -45,7 +46,7 @@ public sealed class JwtService : IJwtService
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public string CreateIdToken(User user, string audienceClientId, string? scope = null)
+    public string CreateIdToken(User user, string audienceClientId, string? scope = null, IReadOnlyList<string>? groupNames = null, IReadOnlyList<string>? permissionCodes = null)
     {
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -59,6 +60,7 @@ public sealed class JwtService : IJwtService
         }
         if ((scopeSet.Contains("email") || scopeSet.Count == 0) && !string.IsNullOrEmpty(user.Email))
             claims.Add(new Claim(JwtRegisteredClaimNames.Email, user.Email));
+        AddGroupAndPermissionClaims(claims, groupNames, permissionCodes);
 
         var token = new JwtSecurityToken(
             issuer: _settings.Issuer,
@@ -69,6 +71,20 @@ public sealed class JwtService : IJwtService
             signingCredentials: credentials);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static void AddGroupAndPermissionClaims(ICollection<Claim> claims, IReadOnlyList<string>? groupNames, IReadOnlyList<string>? permissionCodes)
+    {
+        if (groupNames is not null)
+        {
+            foreach (var name in groupNames.Where(n => !string.IsNullOrWhiteSpace(n)).Distinct(StringComparer.Ordinal))
+                claims.Add(new Claim("group", name.Trim()));
+        }
+        if (permissionCodes is not null)
+        {
+            foreach (var code in permissionCodes.Where(c => !string.IsNullOrWhiteSpace(c)).Distinct(StringComparer.Ordinal))
+                claims.Add(new Claim("permission", code.Trim()));
+        }
     }
 
     private static HashSet<string> ParseScopes(string? scope)

@@ -18,19 +18,24 @@ public class AuthController : ControllerBase
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtService _jwtService;
     private readonly IRefreshTokenService _refreshTokenService;
+    private readonly IPermissionService _permissionService;
     private readonly JwtSettings _jwtSettings;
+
+    private const string DefaultUserGroupName = "Operators";
 
     public AuthController(
         AuthDbContext db,
         IPasswordHasher passwordHasher,
         IJwtService jwtService,
         IRefreshTokenService refreshTokenService,
+        IPermissionService permissionService,
         IOptions<JwtSettings> jwtSettings)
     {
         _db = db;
         _passwordHasher = passwordHasher;
         _jwtService = jwtService;
         _refreshTokenService = refreshTokenService;
+        _permissionService = permissionService;
         _jwtSettings = jwtSettings.Value;
     }
 
@@ -38,6 +43,7 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
     {
         var normalizedUserName = request.UserName.Trim().ToLowerInvariant();
@@ -46,9 +52,18 @@ public class AuthController : ControllerBase
         if (user is null || !_passwordHasher.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
             return BadRequest(new { error = "INVALID_CREDENTIALS" });
 
+        if (!string.IsNullOrWhiteSpace(request.DeviceId))
+        {
+            var allowed = await _permissionService.CanUserAccessDeviceAsync(user.Id, request.DeviceId, cancellationToken);
+            if (!allowed)
+                return StatusCode(StatusCodes.Status403Forbidden, new { error = "DEVICE_ACCESS_DENIED" });
+        }
+
         var scope = "openid profile email";
-        var accessToken = _jwtService.CreateAccessToken(user, scope);
-        var idToken = _jwtService.CreateIdToken(user, DefaultClientId, scope);
+        var groups = await _permissionService.GetGroupNamesForUserAsync(user.Id, cancellationToken);
+        var permissions = await _permissionService.GetFeatureCodesForUserAsync(user.Id, cancellationToken);
+        var accessToken = _jwtService.CreateAccessToken(user, scope, groups, permissions);
+        var idToken = _jwtService.CreateIdToken(user, DefaultClientId, scope, groups, permissions);
         var refreshToken = await _refreshTokenService.CreateAsync(user, cancellationToken);
 
         return Ok(new
@@ -87,6 +102,14 @@ public class AuthController : ControllerBase
 
         _db.Users.Add(user);
         await _db.SaveChangesAsync(cancellationToken);
+
+        var defaultGroup = await _db.PermissionGroups.AsNoTracking()
+            .FirstOrDefaultAsync(g => g.Name == DefaultUserGroupName, cancellationToken);
+        if (defaultGroup is not null)
+        {
+            _db.UserGroupMemberships.Add(new UserGroupMembership { UserId = user.Id, GroupId = defaultGroup.Id });
+            await _db.SaveChangesAsync(cancellationToken);
+        }
 
         return Created($"/api/users/{user.Id}", new { user.Id, user.UserName, user.Email });
     }

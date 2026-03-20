@@ -53,6 +53,7 @@ builder.Services.AddScoped<IPasswordHasher, PasswordHasher>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 builder.Services.AddScoped<IOAuthService, OAuthService>();
+builder.Services.AddScoped<IPermissionService, PermissionService>();
 
 var jwtSettings = builder.Configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
                   ?? throw new InvalidOperationException("Jwt configuration section is missing.");
@@ -73,7 +74,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("perm:app.demo.read", p => p.RequireClaim("permission", "app.demo.read"));
+    options.AddPolicy("perm:app.demo.write", p => p.RequireClaim("permission", "app.demo.write"));
+});
 
 var app = builder.Build();
 
@@ -114,6 +119,8 @@ using (var scope = app.Services.CreateScope())
         client.ClientSecretSalt = salt;
     }
     await db.SaveChangesAsync();
+
+    await AuthDbDevelopmentSeed.SeedRbacAndDevicesAsync(db);
 }
 
 // Página de callback apenas em desenvolvimento (exibe code/state para testar o fluxo)
