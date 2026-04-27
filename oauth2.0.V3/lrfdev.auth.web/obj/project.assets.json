@@ -1,11 +1,45 @@
 {
   "version": 3,
   "targets": {
-    "net8.0": {}
+    "net8.0": {
+      "QRCoder/1.6.0": {
+        "type": "package",
+        "compile": {
+          "lib/net6.0/QRCoder.dll": {}
+        },
+        "runtime": {
+          "lib/net6.0/QRCoder.dll": {}
+        }
+      }
+    }
   },
-  "libraries": {},
+  "libraries": {
+    "QRCoder/1.6.0": {
+      "sha512": "XmPA81eo+oRxBuyVdswsSkTGTE1d3thfF11Z1PdD7oB56A6HU4G4AAOdySmGRMb/cljwlFTMWUtosGEnwpS6GA==",
+      "type": "package",
+      "path": "qrcoder/1.6.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/net35/QRCoder.dll",
+        "lib/net40/QRCoder.dll",
+        "lib/net5.0-windows7.0/QRCoder.dll",
+        "lib/net5.0/QRCoder.dll",
+        "lib/net6.0-windows7.0/QRCoder.dll",
+        "lib/net6.0/QRCoder.dll",
+        "lib/netstandard1.3/QRCoder.dll",
+        "lib/netstandard2.0/QRCoder.dll",
+        "nuget-icon.png",
+        "nuget-readme.md",
+        "qrcoder.1.6.0.nupkg.sha512",
+        "qrcoder.nuspec"
+      ]
+    }
+  },
   "projectFileDependencyGroups": {
-    "net8.0": []
+    "net8.0": [
+      "QRCoder >= 1.6.0"
+    ]
   },
   "packageFolders": {
     "C:\\Users\\leand\\.nuget\\packages\\": {},
@@ -14,11 +48,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\lrfdev.auth.web.csproj",
+      "projectUniqueName": "c:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\lrfdev.auth.web.csproj",
       "projectName": "lrfdev.auth.web",
-      "projectPath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\lrfdev.auth.web.csproj",
+      "projectPath": "c:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\lrfdev.auth.web.csproj",
       "packagesPath": "C:\\Users\\leand\\.nuget\\packages\\",
-      "outputPath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\obj\\",
+      "outputPath": "c:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -59,6 +93,12 @@
     "frameworks": {
       "net8.0": {
         "targetAlias": "net8.0",
+        "dependencies": {
+          "QRCoder": {
+            "target": "Package",
+            "version": "[1.6.0, )"
+          }
+        },
         "imports": [
           "net461",
           "net462",

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("lrfdev.auth.web")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2cd1537d4300730e66414393bde418f743c8dd82")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ed39affce6fc2ae7d571f387bb387247e82c8a38")]
 [assembly: System.Reflection.AssemblyProductAttribute("lrfdev.auth.web")]
 [assembly: System.Reflection.AssemblyTitleAttribute("lrfdev.auth.web")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

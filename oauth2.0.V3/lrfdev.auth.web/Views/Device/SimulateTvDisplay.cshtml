@@ -1,0 +1,80 @@
+@model lrfdev.auth.web.Models.SimulatedTvViewModel
+
+@{
+    ViewData["Title"] = "TV — aguardando login no celular";
+}
+
+<div class="row">
+    <div class="col-lg-6 mb-4">
+        <div class="p-4 bg-dark text-white rounded-3">
+            <h3 class="h5 text-warning mb-3">Conecte sua conta</h3>
+            <p class="mb-2">Digite no celular ou escaneie o QR Code:</p>
+            <p class="display-6 fw-bold tracking-wide mb-0">@Model.UserCode</p>
+            <p class="small mt-3 mb-0 opacity-75">URL: @Model.VerificationUri</p>
+        </div>
+    </div>
+    <div class="col-lg-6 text-center mb-4">
+        <p class="text-muted">Escaneie com a câmera do celular</p>
+        <img src="@Model.QrDataUrl" alt="QR Code — abrir autorização no celular" class="img-fluid border rounded" style="max-width: 280px;" />
+        <p class="small mt-2"><a href="@Model.VerificationUriComplete">Abrir no celular (link direto)</a></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div id="poll-status" class="alert alert-secondary">Aguardando autorização no celular…</div>
+        <pre id="token-result" class="bg-light p-3 rounded d-none small text-break"></pre>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            const intervalMs = @(Model.PollIntervalSeconds * 1000);
+            const statusEl = document.getElementById('poll-status');
+            const tokenEl = document.getElementById('token-result');
+
+            async function poll() {
+                try {
+                    const res = await fetch('@Url.Action("PollToken", "Device")', {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const text = await res.text();
+                    let data;
+                    try { data = JSON.parse(text); } catch { data = null; }
+
+                    if (res.ok && data && data.access_token) {
+                        statusEl.className = 'alert alert-success';
+                        statusEl.textContent = 'Token recebido.';
+                        tokenEl.classList.remove('d-none');
+                        tokenEl.textContent = JSON.stringify(data, null, 2);
+                        return;
+                    }
+
+                    const err = data && data.error ? data.error : 'unknown_error';
+                    if (err === 'authorization_pending') {
+                        statusEl.className = 'alert alert-secondary';
+                        statusEl.textContent = 'Ainda aguardando… (authorization_pending)';
+                        setTimeout(poll, intervalMs);
+                        return;
+                    }
+                    if (err === 'slow_down') {
+                        statusEl.className = 'alert alert-warning';
+                        statusEl.textContent = 'Servidor pediu para aguardar (slow_down).';
+                        setTimeout(poll, intervalMs * 2);
+                        return;
+                    }
+                    statusEl.className = 'alert alert-danger';
+                    statusEl.textContent = 'Erro: ' + text;
+                } catch (e) {
+                    statusEl.className = 'alert alert-danger';
+                    statusEl.textContent = 'Falha na requisição: ' + e;
+                }
+            }
+
+            setTimeout(poll, 500);
+        })();
+    </script>
+}

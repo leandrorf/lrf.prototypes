@@ -13,6 +13,7 @@ public sealed class AuthController(
     AuthDbContext context,
     IPasswordHasher passwordHasher,
     ITokenService tokenService,
+    IPermissionResolver permissionResolver,
     IConfiguration configuration) : ControllerBase
 {
     [HttpPost("login")]
@@ -36,22 +37,7 @@ public sealed class AuthController(
             return Unauthorized();
         }
 
-        var permissionsByUser = await context.UserPermissions
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Id)
-            .Select(x => x.Permission.Name)
-            .ToListAsync();
-
-        var permissionsByGroup = await context.UserGroups
-            .AsNoTracking()
-            .Where(x => x.UserId == user.Id)
-            .SelectMany(x => x.Group.GroupPermissions.Select(gp => gp.Permission.Name))
-            .ToListAsync();
-
-        var permissions = permissionsByUser
-            .Concat(permissionsByGroup)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var permissions = await permissionResolver.ResolveAsync(user.Id);
 
         var token = tokenService.GenerateAccessToken(user, permissions);
         var expiresIn = int.TryParse(configuration["Jwt:AccessTokenMinutes"], out var minutes)

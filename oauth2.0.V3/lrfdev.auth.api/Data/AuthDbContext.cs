@@ -11,6 +11,9 @@ public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbC
     public DbSet<UserGroup> UserGroups => Set<UserGroup>();
     public DbSet<UserPermission> UserPermissions => Set<UserPermission>();
     public DbSet<GroupPermission> GroupPermissions => Set<GroupPermission>();
+    public DbSet<OAuthClient> OAuthClients => Set<OAuthClient>();
+    public DbSet<OAuthAuthorizationCode> OAuthAuthorizationCodes => Set<OAuthAuthorizationCode>();
+    public DbSet<OAuthDeviceFlowSession> OAuthDeviceFlowSessions => Set<OAuthDeviceFlowSession>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -82,6 +85,61 @@ public sealed class AuthDbContext(DbContextOptions<AuthDbContext> options) : DbC
             entity.HasOne(x => x.Permission)
                 .WithMany(x => x.GroupPermissions)
                 .HasForeignKey(x => x.PermissionId);
+        });
+
+        modelBuilder.Entity<OAuthClient>(entity =>
+        {
+            entity.ToTable("oauth_clients");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ClientId).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.ClientSecretHash).HasMaxLength(512);
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.RedirectUris).HasMaxLength(2000).IsRequired();
+            entity.Property(x => x.AllowedScopes).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.AllowDeviceAuthorization).HasDefaultValue(false);
+            entity.HasIndex(x => x.ClientId).IsUnique();
+        });
+
+        modelBuilder.Entity<OAuthAuthorizationCode>(entity =>
+        {
+            entity.ToTable("oauth_authorization_codes");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Code).HasMaxLength(300).IsRequired();
+            entity.Property(x => x.RedirectUri).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.Scope).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.CodeChallenge).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.CodeChallengeMethod).HasMaxLength(20).IsRequired();
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.ExpiresAtUtc);
+
+            entity.HasOne(x => x.Client)
+                .WithMany()
+                .HasForeignKey(x => x.ClientId);
+
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId);
+        });
+
+        modelBuilder.Entity<OAuthDeviceFlowSession>(entity =>
+        {
+            entity.ToTable("oauth_device_flow_sessions");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.DeviceCode).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.UserCode).HasMaxLength(32).IsRequired();
+            entity.Property(x => x.Scope).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(32).IsRequired();
+            entity.HasIndex(x => x.DeviceCode).IsUnique();
+            entity.HasIndex(x => x.UserCode).IsUnique();
+            entity.HasIndex(x => x.ExpiresAtUtc);
+
+            entity.HasOne(x => x.Client)
+                .WithMany()
+                .HasForeignKey(x => x.ClientId);
+
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId);
         });
     }
 }

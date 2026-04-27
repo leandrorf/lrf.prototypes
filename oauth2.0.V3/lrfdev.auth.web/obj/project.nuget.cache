@@ -1,8 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "fxe/DKrhOCs=",
+  "dgSpecHash": "aGNrBIf9R9o=",
   "success": true,
   "projectFilePath": "C:\\dev\\repos\\github\\leandrorf\\lrf.prototypes\\oauth2.0.V3\\lrfdev.auth.web\\lrfdev.auth.web.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "C:\\Users\\leand\\.nuget\\packages\\qrcoder\\1.6.0\\qrcoder.1.6.0.nupkg.sha512"
+  ],
   "logs": []
 }

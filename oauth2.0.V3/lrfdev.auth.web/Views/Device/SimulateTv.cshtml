@@ -1,0 +1,31 @@
+@model lrfdev.auth.web.Models.SimulatedTvViewModel
+
+@{
+    ViewData["Title"] = "TV simulada (Device flow)";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h2 class="mb-3">Simular TV / IoT</h2>
+        <p class="text-muted">
+            Inicia o fluxo <strong>OAuth 2.0 Device Authorization</strong> (RFC 8628).
+            Na próxima tela aparecem o código e um <strong>QR Code</strong> para abrir no celular.
+        </p>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger">@Model.ErrorMessage</div>
+        }
+
+        <form asp-controller="Device" asp-action="StartSimulatedTv" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-lg btn-primary">Iniciar fluxo na TV</button>
+        </form>
+
+        <hr class="my-4" />
+        <p class="small mb-0">
+            No celular você também pode abrir manualmente:
+            <a href="@Url.Action("Authorize", "Device")">@Url.Action("Authorize", "Device", null, Context.Request.Scheme)</a>
+        </p>
+    </div>
+</div>

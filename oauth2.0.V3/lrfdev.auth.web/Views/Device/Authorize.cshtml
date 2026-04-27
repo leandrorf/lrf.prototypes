@@ -1,0 +1,50 @@
+@model lrfdev.auth.web.Models.DeviceAuthorizeViewModel
+
+@{
+    ViewData["Title"] = "Autorizar dispositivo";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="mb-3">Autorizar TV / dispositivo</h2>
+        <p class="text-muted">Confirme o código exibido no aparelho e faça login com sua conta.</p>
+
+        <form asp-controller="Device" asp-action="Authorize" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label asp-for="UserCode" class="form-label"></label>
+                <input asp-for="UserCode" class="form-control text-uppercase" placeholder="ex.: ABCD-EFGH" autocomplete="off" />
+                <span asp-validation-for="UserCode" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Username" class="form-label"></label>
+                <input asp-for="Username" class="form-control" autocomplete="username" />
+                <span asp-validation-for="Username" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Password" class="form-label"></label>
+                <input asp-for="Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Password" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Autorizar dispositivo</button>
+        </form>
+
+        @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger mt-3">@Model.ErrorMessage</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.SuccessMessage))
+        {
+            <div class="alert alert-success mt-3">@Model.SuccessMessage</div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

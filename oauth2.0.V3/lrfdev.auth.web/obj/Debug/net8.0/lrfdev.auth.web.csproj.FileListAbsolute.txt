@@ -32,3 +32,6 @@ C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Deb
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Debug\net8.0\lrfdev.auth.web.pdb
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Debug\net8.0\lrfdev.auth.web.genruntimeconfig.cache
 C:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Debug\net8.0\ref\lrfdev.auth.web.dll
+c:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\bin\Debug\net8.0\QRCoder.dll
+c:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Debug\net8.0\lrfdev.auth.web.csproj.AssemblyReference.cache
+c:\dev\repos\github\leandrorf\lrf.prototypes\oauth2.0.V3\lrfdev.auth.web\obj\Debug\net8.0\lrfdev.a.E6170EE4.Up2Date
